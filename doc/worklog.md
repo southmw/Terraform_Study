@@ -127,3 +127,27 @@
 - feature 브랜치 `chore/validate-plan-pipeline` + PR #1 (src/envs/dev/main.tf 주석만 변경)
 - `terraform-plan` run 27744282184 **success** — OIDC 인증, `No changes`
 - PR-트리거 plan 파이프라인 동작 확인 완료
+
+---
+
+## 2026-06-18 — 전체 리소스 teardown (사용자 요청)
+
+- **작업명**: terraform 배포 리소스 전부 삭제
+- **순서**: ① envs/dev destroy(17) → ② bootstrap state 로컬 환원 → ③ bootstrap destroy(13)
+- **주의**: Key Vault purge protection → 소프트 삭제(7일 후 자동 purge), 이름 랜덤이라 재사용 무관
+- **GitHub**: gh로 만든 Variables/Environments/워크플로는 terraform 자원이 아니므로 별도(요청 시 정리)
+- **상태**: ⏳ 진행 중
+
+### teardown 결과 (2026-06-18) — ✅ 완료
+- envs/dev 17개 + bootstrap 13개 = **총 30개 리소스 삭제**
+- 검증: alz 리소스 그룹 0개, 구독 정책 할당 0개
+- Key Vault `kv-alz-l3ss45`만 소프트 삭제 상태(purge protection) → 2026-06-25 자동 purge 예정(수동 purge 불가)
+- bootstrap state 로컬 환원 후 destroy, 로컬 state 파일 정리
+- **잔존(비-terraform)**: GitHub Variables/Environments/워크플로(gh로 생성) — 별도 정리 필요 시 요청
+
+### GitHub 정리 (2026-06-18) — ✅ 완료 (작업 A)
+- 워크플로 `terraform-plan`/`terraform-apply` → `gh workflow disable`(상태 disabled_manually, 파일 보존)
+- Variables 3개 삭제, Environments `plan`/`apply` 삭제
+- 워크플로 YAML 상단에 비활성·재활성 안내 주석 추가
+- 검증: Variables 0, Environments 0, 워크플로 2개 disabled
+- 재활성: 부트스트랩 재배포 → Variables/Environments 재생성 → `gh workflow enable`

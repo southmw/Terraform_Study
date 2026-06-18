@@ -1,3 +1,6 @@
+# DISABLED (2026-06-18): Azure backend/UAMI 및 GitHub Variables/Environments 제거됨(teardown).
+# 워크플로는 `gh workflow disable`로 비활성화됨. 재배포 시: Phase 1 부트스트랩 →
+# Variables(AZURE_CLIENT_ID/TENANT_ID/SUBSCRIPTION_ID)·Environments(plan/apply) 재생성 → `gh workflow enable terraform-plan`.
 name: terraform-plan
 
 on:
