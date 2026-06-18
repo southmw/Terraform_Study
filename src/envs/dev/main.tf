@@ -1,3 +1,4 @@
+# NOTE: plan 파이프라인(PR 트리거) 검증용 변경 — 주석만 추가하여 plan 결과는 No changes 예상
 data "azurerm_client_config" "current" {}
 
 locals {
