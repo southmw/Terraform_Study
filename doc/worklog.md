@@ -1,0 +1,108 @@
+# 작업 로그 (Worklog)
+
+> 모든 신규/변경 작업은 **구현 전에** 이 로그와 관련 설계 문서를 먼저 갱신한다.
+> 형식: 날짜 · 작업명 · 변경 요약 · 결정사항 · 상태
+
+---
+
+## 2026-06-18 — 설계 확정 및 문서화 착수
+
+- **작업명**: Azure 구독 범위 랜딩 존 설계 정리
+- **변경 요약**:
+  - `doc/azure-landing-zone-design.md` 설계서 작성(전체 설계 SSOT)
+  - `doc/worklog.md` 작업 로그 시작
+- **주요 결정사항**:
+  - 테넌트/관리 그룹 권한 부재 → 엔터프라이즈 ALZ 대신 **단일 구독 범위 랜딩 존**으로 축소
+  - 모듈: **하이브리드** (허브=`avm-ptn-hubnetworking`, 나머지=`azurerm` 직접)
+  - State: Azure Storage 원격(Entra 인증, 계정 키 미사용)
+  - CI/CD: GitHub Actions + UAMI OIDC
+  - **문서 우선 워크플로** 채택: 모든 작업 전 `doc/` 문서 선작성
+- **상태**: ✅ 설계 문서화 완료 / ⏳ 구현(Phase 0 스캐폴딩) 대기
+
+### 다음 작업 (예정)
+- [ ] Phase 2: 플랫폼 구성(LA, Key Vault, 허브, 스포크, 정책)
+- [ ] Phase 3: GitHub Actions 파이프라인
+- [ ] Phase 4: 스포크 확장
+
+---
+
+## 2026-06-18 — Phase 0: 리포 스캐폴딩
+
+- **작업명**: 프로젝트 디렉토리 구조 및 기본 파일 생성
+- **변경 요약**:
+  - 모든 Terraform 소스를 **`src/` 하위**로 배치하도록 구조 결정(사용자 요청)
+  - `src/bootstrap/`, `src/envs/dev/`, `src/modules/` 디렉토리 + `.gitkeep`
+  - `.gitignore`(루트) — `*.tfstate*`, `.terraform/`, `*.auto.tfvars`, `*.secret.tfvars` 제외
+  - `README.md`(루트) — 프로젝트 개요 및 doc 링크
+- **결정사항**:
+  - `.github/workflows/`는 GitHub 요구사항상 리포 루트 유지, 워크플로의 `working-directory`는 `src/envs/dev`
+  - 비밀 없는 `terraform.tfvars`는 커밋 대상
+- **상태**: ✅ 완료 (git 루트 = 프로젝트 폴더, 모든 파일 스테이징됨 / 커밋은 사용자 요청 시)
+
+---
+
+## 2026-06-18 — Phase 1: State 백엔드 & ID 부트스트랩 (코드 작성)
+
+- **작업명**: `src/bootstrap/` Terraform 코드 작성
+- **입력값**: 구독 `abefcbfc-9c77-46d4-bc22-cef5aab13f22`, 리전 `koreacentral`, GitHub `southmw/Terraform_Study`
+- **변경 요약**:
+  - `providers.tf` — azurerm ~>4 (resource_provider_registrations=none), random ~>3.6
+  - `variables.tf` — subscription/location/prefix/github_*/역할·키 토글 변수
+  - `main.tf` — RG(tfstate/identity), Storage(버전관리·소프트삭제·change-feed), 컨테이너, UAMI, OIDC 연합자격증명 4건, 역할 할당 3종
+  - `outputs.tf` — backend/UAMI/tenant 출력
+  - `terraform.tfvars` — 확정 입력값(비밀 없음, 커밋 대상)
+  - `backend.tf` — 원격 state 이전용 주석 블록
+- **설계 결정**:
+  - 부트스트랩 단계 Storage 키 비활성화는 보류(기본 true) → 운영 강화 시 false 전환(후속)
+  - 역할 할당은 Owner/UAA 필요 → 토글로 분기 가능
+- **상태**: ✅ 코드 작성 완료 / ⏳ `terraform validate` 미실행 — **Terraform CLI 미설치**(az는 설치됨)
+- **블로커**: 로컬에 Terraform CLI 없음 → 설치 후 fmt/validate/apply 필요
+
+### 검증 결과 (2026-06-18)
+- Terraform v1.15.6 (설치 위치: `C:\Terraform` — bash PATH에 수동 추가 필요)
+- `terraform fmt` 정상(diff 없음)
+- `terraform init -backend=false` → azurerm v4.77.0, random v3.9.0 설치
+- `terraform validate` → **Success**
+- `.terraform.lock.hcl` 생성됨(커밋 대상)
+
+### 배포 결과 (2026-06-18) — ✅ Apply 완료
+- 로그인: `southmw@cloocus.com`, 구독 `abefcbfc-...ab13f22`(소유자), 테넌트 `a74b5451-...153c71`
+- **13개 리소스 생성** (RG 2, Storage+컨테이너, UAMI, OIDC 연합자격증명 4, 역할할당 3, random 1)
+- 주요 출력값(비밀 아님):
+  - State RG: `rg-alz-tfstate` / Storage: `stalztfstatehbxh4l` / 컨테이너: `tfstate`
+  - UAMI client_id: `9418c180-e418-4f3d-a1ac-70315e4c0e53`
+  - UAMI principal_id: `91c96adc-9286-4264-b122-07c94d2f0f20`
+- 코드 보정: federated credential `parent_id` → `user_assigned_identity_id`(v5.0 대비), re-plan No changes 확인
+- 다음: **Phase 2** (envs/dev 플랫폼 구성)
+
+### 부트스트랩 state 원격 이전 (2026-06-18) — ✅ 완료 (작업 A)
+- `backend.tf` 활성화: `stalztfstatehbxh4l`/`tfstate`/key `bootstrap.terraform.tfstate`, `use_azuread_auth=true`
+- `terraform init -migrate-state` 성공(RBAC 전파 정상) → 원격 blob에 state 저장 확인(30,557 bytes)
+- `terraform plan` No changes 확인, 로컬 `terraform.tfstate*` 정리
+
+---
+
+## 2026-06-18 — Phase 2: 플랫폼 구성 (envs/dev) — ✅ 완료
+
+- **작업명**: `src/envs/dev/` 플랫폼 배포 (LA, KV, 허브/스포크, 정책)
+- **입력값**: 허브 10.0.0.0/24, 스포크 10.1.0.0/24, Firewall/Bastion 비활성, 허용 리전 koreacentral/koreasouth, 필수 태그 project
+- **변경 요약**: providers/backend(key `envs/dev.terraform.tfstate`)/variables/main/outputs/tfvars 작성
+- **생성 리소스(17)**: RG 4(mgmt/security/hub/spoke-dev), Log Analytics `log-alz-dev`, Key Vault `kv-alz-l3ss45`(RBAC·purge protection), 허브 VNet `vnet-alz-hub`+shared 서브넷(avm-ptn-hubnetworking 0.13.2), 스포크 VNet `vnet-alz-spoke-dev`+snet-workload, 피어링 2(양방향 Connected), 구독 정책 4(allowed-locations deny, require-rg-tag deny, KV/Storage audit)
+- **이슈/해결**: `resource_provider_registrations=none` 때문에 1차 apply에서 `MissingSubscriptionRegistration`(Microsoft.OperationalInsights, Microsoft.KeyVault) → `az provider register`로 수동 등록(+Insights, PolicyInsights) 후 재적용 성공
+- **코드 보정**: KV `enable_rbac_authorization` → `rbac_authorization_enabled`(v5.0 대비)
+- **검증**: validate Success, peering 양방향 Connected, outputs 정상
+- **다음**: Phase 3 (GitHub Actions 파이프라인) / 후속(예산 알림, 진단설정, Firewall 토글)
+
+---
+
+## 2026-06-18 — Phase 3: GitHub Actions 파이프라인 (코드 작성)
+
+- **작업명**: `.github/workflows/` plan/apply 워크플로 작성
+- **변경 요약**:
+  - `plan.yml` — PR 트리거, environment `plan`, OIDC 로그인, init/fmt/validate/plan
+  - `apply.yml` — main 푸시 트리거, environment `apply`(승인 게이트), init/apply
+  - 인증: UAMI OIDC(시크릿 없음), `ARM_USE_OIDC`/`ARM_USE_AZUREAD` + 리포 Variables
+  - 설계 문서 `doc/phase3-pipeline.md` 작성
+- **검증**: 두 워크플로 YAML 문법 OK
+- **남은 작업(사용자/UI)**: GitHub Variables(AZURE_CLIENT_ID/TENANT_ID/SUBSCRIPTION_ID) + Environments(plan, apply+필수리뷰어) 설정 후 브랜치 푸시→PR
+- **상태**: ✅ 코드 작성 완료 / ⏳ GitHub 설정·커밋·푸시 대기(확인 필요)

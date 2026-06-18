@@ -1,0 +1,37 @@
+# Terraform state — 절대 커밋 금지 (민감값 평문 포함 가능)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl.bak
+
+# 비밀이 포함될 수 있는 변수 파일 (비밀은 KV/OIDC로만 — tfvars에 넣지 않음)
+*.auto.tfvars
+*.secret.tfvars
+secrets.tfvars
+
+# crash / plan 산출물
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+tfplan.*
+
+# 환경/자격증명
+.env
+*.pem
+*.key
+
+# 도구 부산물
+.alzlib/
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 주의: 비밀 없는 terraform.tfvars 는 커밋 대상이므로 무시하지 않음
