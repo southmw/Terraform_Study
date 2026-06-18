@@ -106,3 +106,24 @@
 - **검증**: 두 워크플로 YAML 문법 OK
 - **남은 작업(사용자/UI)**: GitHub Variables(AZURE_CLIENT_ID/TENANT_ID/SUBSCRIPTION_ID) + Environments(plan, apply+필수리뷰어) 설정 후 브랜치 푸시→PR
 - **상태**: ✅ 코드 작성 완료 / ⏳ GitHub 설정·커밋·푸시 대기(확인 필요)
+
+### GitHub 설정·배포 (2026-06-18) — gh CLI 자동화
+- gh v2.94.0 설치 위치: `C:\Program Files\GitHub CLI` (bash PATH 수동 추가 필요), 인증: southmw
+- Variables 3개 설정(AZURE_CLIENT_ID/TENANT_ID/SUBSCRIPTION_ID)
+- Environments: `plan`(무보호), `apply`(필수 리뷰어=southmw, 승인 게이트)
+- 기본 브랜치 `master`→`main` 변경, 로컬 main 푸시(초기 커밋 a14850c)
+- `terraform-apply` 워크플로 트리거 → **waiting(승인 게이트 대기)** = 정상 동작
+- 다음: 승인 시 No-changes apply 확인(이미 로컬 적용됨). PR로 plan 워크플로 검증 가능
+
+### apply 승인·완료 (2026-06-18) — ✅ 파이프라인 검증 완료
+- 사용자 승인 → `terraform-apply` run 27743901588 **success**
+- OIDC 인증(시크릿 없음) → 원격 state 접근 → `No changes` / Apply complete: 0 added/changed/destroyed
+- Phase 0~3 전체 완료. 시크릿 없는 CI/CD 동작 확인
+
+### 브랜치 정리 (2026-06-18)
+- 빈 `master` 브랜치 삭제(원격), 기본 브랜치 `main` 단일화, 로컬 추적 참조 prune
+
+### plan 워크플로 검증 (2026-06-18) — ✅ (작업 2)
+- feature 브랜치 `chore/validate-plan-pipeline` + PR #1 (src/envs/dev/main.tf 주석만 변경)
+- `terraform-plan` run 27744282184 **success** — OIDC 인증, `No changes`
+- PR-트리거 plan 파이프라인 동작 확인 완료

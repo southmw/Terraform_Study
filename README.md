@@ -17,9 +17,23 @@ src/
 .github/workflows/    CI/CD (Phase 3) — working-directory: src/envs/dev
 ```
 
+## 진행 현황 (2026-06-18)
+
+| Phase | 내용 | 상태 |
+|---|---|---|
+| 0 | `src/` 스캐폴딩, 문서 우선 워크플로, git 루트 | ✅ |
+| 1 | State 백엔드 + UAMI OIDC 부트스트랩 (원격 azurerm state) | ✅ |
+| 2 | 플랫폼 — Log Analytics, Key Vault, 허브-스포크, 구독 정책 4종 | ✅ |
+| 3 | GitHub Actions plan/apply (UAMI OIDC, 승인 게이트) | ✅ |
+
+- 배포 리소스: Phase 1 부트스트랩 13개 + Phase 2 플랫폼 17개
+- 파이프라인 검증 완료: PR→plan, merge→apply(승인 게이트), 모두 시크릿 없는 OIDC
+- 후속(선택): 예산 알림, 진단설정(LA 연동), Firewall/Bastion 토글, `envs/prod` 확장
+
 ## 문서
 
 - 설계서(SSOT): [doc/azure-landing-zone-design.md](doc/azure-landing-zone-design.md)
 - 작업 로그: [doc/worklog.md](doc/worklog.md)
+- Phase 설계: [phase1](doc/phase1-bootstrap.md) · [phase2](doc/phase2-platform.md) · [phase3](doc/phase3-pipeline.md)
 
 > **작업 규칙**: 모든 신규/변경 작업은 코드 구현 전에 `doc/` 문서를 먼저 작성·갱신한다.
